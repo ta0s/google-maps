@@ -123,11 +123,11 @@ class WebService{
      */
     public function setParamByKey($key, $value){
 
-         if( array_key_exists( $key, Arr::dot( $this->service['param'] ) ) ){
-             Arr::set($this->service['param'], $key, $value);
-         }
+        if( array_key_exists( $key, Arr::dot( $this->service['param'] ) ) ){
+            Arr::set($this->service['param'], $key, $value);
+        }
 
-         return $this;
+        return $this;
     }
 
     /**
@@ -169,8 +169,8 @@ class WebService{
     public function get( $needle = false ){
 
         return empty( $needle )
-                ? $this->getResponse()
-                : $this->getResponseByKey( $needle );
+            ? $this->getResponse()
+            : $this->getResponseByKey( $needle );
     }
 
     /**
@@ -187,8 +187,8 @@ class WebService{
 
         // set default key parameter
         $needle = empty( $needle )
-                    ? metaphone($this->service['responseDefaultKey'])
-                    : metaphone($needle);
+            ? metaphone($this->service['responseDefaultKey'])
+            : metaphone($needle);
 
         // get response
         $obj = json_decode( $this->get(), true);
@@ -211,8 +211,8 @@ class WebService{
         #return array_slice($response, $offset, $length);
 
         return count($response) < 1
-               ? $obj
-               : $response;
+            ? $obj
+            : $response;
     }
 
     /**
@@ -247,37 +247,37 @@ class WebService{
      */
     protected function build( $service ){
 
-            $this->validateConfig( $service );
+        $this->validateConfig( $service );
 
-            // set default endpoint
-            $this->setEndpoint();
+        // set default endpoint
+        $this->setEndpoint();
 
-            // set web service parameters
-            $this->service = Config::get('googlemaps.service.'.$service);
+        // set web service parameters
+        $this->service = Config::get('googlemaps.service.'.$service);
 
-            // is service key set, use it, otherwise use default key
-            $this->key = empty( $this->service['key'] )
-                         ? Config::get('googlemaps.key')
-                         : $this->service['key'];
+        // is service key set, use it, otherwise use default key
+        $this->key = empty( $this->service['key'] )
+            ? Config::get('googlemaps.key')
+            : $this->service['key'];
 
-            // set service url
-            $this->requestUrl = $this->service['url'];
+        // set service url
+        $this->requestUrl = $this->service['url'];
 
-            // is ssl_verify_peer key set, use it, otherwise use default key
-            $this->verifySSL = empty(Config::get('googlemaps.ssl_verify_peer'))
-                            ? FALSE
-                            : Config::get('googlemaps.ssl_verify_peer');
+        // is ssl_verify_peer key set, use it, otherwise use default key
+        $this->verifySSL = empty(Config::get('googlemaps.ssl_verify_peer'))
+            ? FALSE
+            : Config::get('googlemaps.ssl_verify_peer');
 
-            // set the timeout for the connect phase
-            $this->connectionTimeout = Config::get("googlemaps.connection_timeout");
+        // set the timeout for the connect phase
+        $this->connectionTimeout = Config::get("googlemaps.connection_timeout");
 
-            // set the maximum time the transfer is allowed to complete
-            $this->requestTimeout = Config::get("googlemaps.request_timeout");
+        // set the maximum time the transfer is allowed to complete
+        $this->requestTimeout = Config::get("googlemaps.request_timeout");
 
-            // set the compression flag
-            $this->requestUseCompression = Config::get("googlemaps.request_use_compression");
+        // set the compression flag
+        $this->requestUseCompression = Config::get("googlemaps.request_use_compression");
 
-            $this->clearParameters();
+        $this->clearParameters();
     }
 
     /**
@@ -288,28 +288,28 @@ class WebService{
      */
     protected function validateConfig( $service ){
 
-            // Check for config file
-            if( ! Config::has('googlemaps')){
-                throw new ErrorException('Unable to find config file.');
-            }
+        // Check for config file
+        if( ! Config::has('googlemaps')){
+            throw new ErrorException('Unable to find config file.');
+        }
 
-            // Validate Key parameter
-            if(Config::has('googlemaps.key') === false){
-                throw new ErrorException('Unable to find Key parameter in configuration file.');
-            }
+        // Validate Key parameter
+        if(Config::has('googlemaps.key') === false){
+            throw new ErrorException('Unable to find Key parameter in configuration file.');
+        }
 
-            // Validate Key parameter
-            if(Config::has('googlemaps.service') === false || Config::has('googlemaps.service.'.$service) === false){
-                throw new ErrorException('Web service must be declared in the configuration file.');
-            }
+        // Validate Key parameter
+        if(Config::has('googlemaps.service') === false || Config::has('googlemaps.service.'.$service) === false){
+            throw new ErrorException('Web service must be declared in the configuration file.');
+        }
 
-            // Validate Endpoint
-            $endpointCount = count(Config::get('googlemaps.endpoint', []));
-            $endpointsKeyExists = Config::has('googlemaps.endpoint');
+        // Validate Endpoint
+        $endpointCount = count(Config::get('googlemaps.endpoint', []));
+        $endpointsKeyExists = Config::has('googlemaps.endpoint');
 
-            if($endpointsKeyExists === false || $endpointCount < 1){
-                throw new ErrorException('End point must not be empty.');
-            }
+        if($endpointsKeyExists === false || $endpointCount < 1){
+            throw new ErrorException('End point must not be empty.');
+        }
     }
 
     /**
@@ -323,22 +323,30 @@ class WebService{
 
         // use output parameter if required by the service
         $this->requestUrl.= $this->service['endpoint']
-                            ? $this->endpoint
-                            : '';
-
-        // set API Key
-        $this->requestUrl.= 'key='.urlencode( $this->key );
+            ? $this->endpoint
+            : '';
 
         switch( $this->service['type'] ){
             case 'POST':
+                $fields = $this->service['param']['fields'];
+                unset($this->service['param']['fields']);
                 $post = json_encode( $this->service['param'] );
+                $key = Config::get('googlemaps.key');
                 break;
-            default:
+            case 'GET':
+                if (isset($this->service['param']['place_id'])) {
+                    $this->requestUrl.= $this->service['param']['place_id'] . '?';
+                    unset($this->service['param']['place_id']);
+                }
+                $this->requestUrl.= 'key='.urlencode( $this->key );
                 $this->requestUrl.='&'. Parameters::getQueryString( $this->service['param'] );
+                $key = null;
+                $fields = null;
+
                 break;
         }
 
-        return $this->make( $post );
+        return $this->make( $post, $key, $fields );
     }
 
     /**
@@ -347,12 +355,14 @@ class WebService{
      * @return bool|string
      * @throws \ErrorException
      */
-    protected function make( $isPost = false ){
+    protected function make( $isPost = false, $key = null, $fields = null) {
+
+//        dd($isPost);
 
         $ch = curl_init( $this->requestUrl );
 
         if( $isPost ){
-            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json', 'X-Goog-Api-Key: ' . $key, 'X-Goog-FieldMask:' . $fields]);
             curl_setopt($ch,CURLOPT_POST, 1);
             curl_setopt($ch,CURLOPT_POSTFIELDS, $isPost );
         }
